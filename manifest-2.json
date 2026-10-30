@@ -1,0 +1,18 @@
+{
+ "id": "/de-saint-security-academy/",
+ "name": "De'Saints Security Academy Portal",
+ "short_name": "DeSaints",
+ "description": "Student and instructor portal for De'Saints Security Academy.",
+ "lang": "en",
+ "start_url": "./",
+ "scope": "./",
+ "display": "standalone",
+ "orientation": "portrait",
+ "background_color": "#0b1f45",
+ "theme_color": "#0b1f45",
+ "icons": [
+  {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+  {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+  {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+ ]
+}
