@@ -60,13 +60,15 @@ function home0(){document.body.classList.remove('au');if(me.role==='instructor')
 <div class="card"><h2>${ic('pen')}Marking</h2><p class="mu">Read typed answers and give marks.</p><button data-a="wrq">Open</button></div>
 <div class="card"><h2>${ic('award')}Certificates</h2><p class="mu">Check every pass rule, confirm the capstone, issue certificates, allow exam retakes.</p><button data-a="crt">Open</button></div>
 <div class="card"><h2>${ic('users')}Orders and payments</h2><p class="mu">Online payments, instalments and referral codes.</p><button data-s="orders">Open</button></div>
+<div class="card"><h2>${ic('down')}Materials</h2><p class="mu">Upload PDFs, slides and video links for each course.</p><button data-m="course">Open</button></div>
 <div class="card"><h2>${ic('down')}Export data</h2><p class="mu">Download a spreadsheet file. Also works as a backup.</p><div class="row"><button class="g" data-a="ex" data-t="s">Students</button><button class="g" data-a="ex" data-t="a">All scores</button></div></div></div></div>`;
  setTimeout(rings,0);A.innerHTML=hd('Welcome, '+esc(me.full_name.split(' ')[0]))+`<div class="card row" id="rings" style="justify-content:space-around"><span class="mu">Loading your progress...</span></div><div class="grid">
 <div class="card"><h2>${ic('user')}My profile</h2><p class="mu">Photo, attendance, standing and payments.</p><button data-a="me">Open</button></div>
 <div class="card"><h2>${ic('quiz')}Quizzes</h2><p class="mu">Weekly quizzes.</p><button data-a="list" data-k="quiz">Open</button></div>
 <div class="card"><h2>${ic('exam')}Exams</h2><p class="mu">Final assessment. One attempt unless your instructor allows a retake.</p><button data-a="list" data-k="exam">Open</button></div>
 <div class="card"><h2>${ic('file')}Assignments</h2><p class="mu">Typed answers are saved as you write.</p><button data-a="list" data-k="assignment">Open</button></div>
-<div class="card"><h2>${ic('lab')}Labs</h2><p class="mu">Tick each step, upload screenshots, submit for review.</p><button data-a="labs">Open</button></div></div>`}
+<div class="card"><h2>${ic('lab')}Labs</h2><p class="mu">Tick each step, upload screenshots, submit for review.</p><button data-a="labs">Open</button></div>
+<div class="card"><h2>${ic('down')}Materials</h2><p class="mu">Course PDF, slides and video links.</p><button data-m="course">Open</button></div></div>`}
 async function list(k){const[{data:as},{data:at}]=await Promise.all([sb.from('assessments').select('*').eq('kind',k).order('week'),sb.from('attempts').select('*').eq('user_id',(await sb.auth.getUser()).data.user.id)]);
  A.innerHTML=hd({quiz:'Quizzes',exam:'Exams',assignment:'Assignments'}[k])+back()+(as.length?as.map(a=>{const m=at.filter(x=>x.assessment_id===a.id),b=m.sort((x,y)=>y.score-x.score)[0],ps=m.some(x=>x.passed),to=m.some(x=>x.timed_out),done=ps||to||(k!=='quiz'&&m.length);
  return `<div class="card row"><div><h3>${esc(a.title)}</h3><div class="mu">${b?`${to?'<span class="bad">Time ran out. Ask your instructor about a retake.</span>':b.passed===null?'Submitted. Waiting for marking.':`Best: ${b.score}/${b.total} · <span class="${b.passed?'ok':'bad'}">${b.passed?'Passed':'Not passed'}</span>`}`:'Not taken yet'}</div></div>
@@ -241,9 +243,13 @@ const planLabel=n=>n===1?'Pay in full':n+' instalments';
 async function shopV(note){
  document.body.classList.remove('au');
  A.innerHTML=shopHd()+'<div class="card mu">Loading courses...</div>';
- const{data,error}=await sb.rpc('shop_catalog');
- if(error||!data){A.innerHTML=shopHd()+`<div class="card"><b>Could not load the courses</b><div class="err">${esc(error?.message||'Try again in a moment.')}</div><button data-s="shop">Try again</button></div>`;return}
- CAT=data;const cs=id=>CAT.courses.find(c=>c.id===id),pend=LS.get('dsa_pay');
+ let data=null,error=null;
+ try{const r=await Promise.race([sb.rpc('shop_catalog'),new Promise((_,no)=>setTimeout(()=>no(new Error('The server did not answer within 15 seconds.')),15000))]);data=r.data;error=r.error}catch(e){error=e}
+ const fail=m=>{A.innerHTML=shopHd()+`<div class="card"><b>Could not load the courses</b><div class="err">${esc(m)}</div><div class="mu">Send this message to Claude or to your developer. You can still log in.</div><button data-s="shop">Try again</button><button class="g" data-s="login">Log in</button></div>`};
+ if(error||!data)return fail((error&&(error.message||error.details||error.hint))||'No data came back.');
+ CAT=data;try{shopRender(note,pend0())}catch(e){console.error(e);fail('Page error: '+e.message)}}
+const pend0=()=>LS.get('dsa_pay');
+function shopRender(note,pend){const cs=id=>CAT.courses.find(c=>c.id===id);
  const hidden=p=>p.kind!=='course'&&!p.quote.available&&/^Sign-ups/.test(p.quote.reason||'');
  const begClosed=!(cs('beginner')?.open);
  const cards=CAT.products.filter(p=>!hidden(p)).map(p=>{
@@ -374,6 +380,53 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-s]')
  else if(a==='pay')payNow();else if(a==='claim')claimGo();else if(a==='finish')finishV();else if(a==='fgo')finishGo();
  else if(a==='paynext')payNext(d.o);else if(a==='orders')ordV();else if(a==='rcadd')rcAdd();
  else if(a==='scroll')document.getElementById(d.t)?.scrollIntoView({behavior:'smooth'})});
+/* ===== Materials (course PDF, slides, video links) ===== */
+const MCRS=[['beginner','Beginner Cybersecurity'],['intermediate','Intermediate: CCNA Prep and Security'],['va','Vulnerability Assessment and Report']];
+let MC=null,MBLOB={};document.head.insertAdjacentHTML('beforeend','<style>.mb{display:inline-block;padding:10px 14px;border-radius:10px;background:#0b1f44;color:#fff!important;font-weight:700;text-decoration:none;border-bottom:3px solid #f5b800}</style>');
+function loadPdfjs(){return new Promise((ok,no)=>{if(window.pdfjsLib)return ok();const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';s.onload=()=>{try{pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';ok()}catch(e){no(e)}};s.onerror=()=>no(new Error('viewer'));document.head.appendChild(s);setTimeout(()=>no(new Error('timeout')),15000)})}
+async function matBlob(m){if(MBLOB[m.id])return MBLOB[m.id];const{data,error}=await sb.storage.from('materials').download(m.file_path);if(error||!data)throw new Error(error?.message||'download');const t=/\.pdf$/i.test(m.file_path)?'application/pdf':data.type;const b=data.type===t?data:new Blob([data],{type:t});MBLOB[m.id]=b;return b}
+function matFallback(box,m,b,why){const u=URL.createObjectURL(b);box.innerHTML=`<div class="mu" style="padding:10px">${why||'Could not show this file inside the portal.'}</div><div class="row" style="gap:8px;padding:0 10px 10px"><a class="mb" href="${u}" target="_blank" rel="noopener">Open</a><a class="mb" href="${u}" download="${esc(m.file_name||m.title+'.pdf')}">Download</a></div>`}
+async function matShow(m,box){box.innerHTML='<div class="mu" style="padding:10px">Loading...</div>';let b;try{b=await matBlob(m)}catch(e){box.innerHTML='<div class="err" style="padding:10px">Could not load the file. Check your connection and try again.</div>';return}
+ if(!/\.pdf$/i.test(m.file_path))return matFallback(box,m,b,'This is a PowerPoint file. Download it to open it on your phone.');
+ try{await loadPdfjs();const doc=await pdfjsLib.getDocument({data:await b.arrayBuffer()}).promise;const p1=await doc.getPage(1),v1=p1.getViewport({scale:1});box.innerHTML=`<div class="mu" style="padding:6px 10px">${doc.numPages} pages</div>`;
+  const w=Math.max(280,box.clientWidth||320),dpr=Math.min(window.devicePixelRatio||1,2),io=new IntersectionObserver(es=>es.forEach(async en=>{if(!en.isIntersecting)return;const d=en.target;io.unobserve(d);try{const pg=await doc.getPage(+d.dataset.n),v=pg.getViewport({scale:w/v1.width*dpr}),c=document.createElement('canvas');c.width=v.width;c.height=v.height;c.style.width='100%';d.innerHTML='';d.appendChild(c);await pg.render({canvasContext:c.getContext('2d'),viewport:v}).promise}catch(e){}}),{rootMargin:'600px'});
+  for(let n=1;n<=doc.numPages;n++){const d=document.createElement('div');d.dataset.n=n;d.style.cssText='width:100%;aspect-ratio:'+v1.width+'/'+v1.height+';background:#fff;margin:0 0 6px;border:1px solid #0002';box.appendChild(d);io.observe(d)}
+  const u=URL.createObjectURL(b);box.insertAdjacentHTML('beforeend',`<div class="row" style="gap:8px;padding:6px 10px"><a class="mb" href="${u}" download="${esc(m.file_name||m.title+'.pdf')}">Download</a></div>`)
+ }catch(e){matFallback(box,m,b)}}
+const MKIND={pdf:'PDF',slides:'Slides',video:'Video',link:'Link'};
+async function matV(c){const ins=me.role==='instructor';let cs=MCRS;
+ if(!ins){const{data}=await sb.from('enrollments').select('course_id').eq('status','active'),ids=(data||[]).map(x=>x.course_id);cs=MCRS.filter(x=>ids.includes(x[0]))}
+ if(!cs.length){A.innerHTML=hd('Materials')+`<div><button class="g" data-a="home">← Back</button></div><div class="card"><p class="mu">Your course materials will appear here once your payment is confirmed.</p></div>`;return}
+ MC=c||(cs.some(x=>x[0]===MC)?MC:cs[0][0]);
+ const{data:rows,error}=await sb.from('materials').select('*').eq('course_id',MC).order('sort').order('created_at'),R=rows||[];
+ const main=R.find(r=>r.is_main&&r.file_path),oth=R.filter(r=>r!==main);
+ const tabs=cs.length>1||ins?`<div class="row" style="gap:6px;flex-wrap:wrap;margin:8px 0">${cs.map(x=>`<button class="${x[0]===MC?'':'g'}" data-m="course" data-c="${x[0]}">${esc(x[1])}</button>`).join('')}</div>`:`<h2>${esc(cs[0][1])}</h2>`;
+ const row=r=>`<tr><td><span class="mu">${MKIND[r.kind]}</span><br><b>${esc(r.title)}</b>${r.visible?'':' <span class="mu">(hidden)</span>'}</td><td style="text-align:right;white-space:nowrap">${r.file_path?`<button data-m="open" data-i="${r.id}">${/\.pdf$/i.test(r.file_path)?'Read':'Get'}</button>`:`<a class="mb" href="${esc(r.url)}" target="_blank" rel="noopener">${r.kind==='video'?'Watch':'Open'}</a>`}${ins?` <button class="g" data-m="hide" data-i="${r.id}" data-v="${r.visible}">${r.visible?'Hide':'Show'}</button> <button class="g" data-m="del" data-i="${r.id}">Delete</button>`:''}</td></tr><tr hidden id="mr-${r.id}"><td colspan="2"><div id="mv-${r.id}"></div></td></tr>`;
+ const vids=oth.filter(r=>r.kind==='video'||r.kind==='link'),files=oth.filter(r=>r.file_path);
+ A.innerHTML=hd('Materials')+`<div><button class="g" data-a="home">← Back</button></div>${tabs}`
+ +`<div class="card"><h3>Full course material</h3>${main?`<p class="mu">${esc(main.title)}</p><div id="mv-main"></div>`:`<p class="mu">${ins?'No main PDF yet. Upload one below and tick "Main course material".':'Your instructor will add the course PDF here.'}</p>`}</div>`
+ +`<div class="card"><h3>Slides and extra files</h3>${files.length?`<table>${files.map(row).join('')}</table>`:'<p class="mu">Nothing yet.</p>'}</div>`
+ +`<div class="card"><h3>Videos and links</h3>${vids.length?`<table>${vids.map(row).join('')}</table>`:'<p class="mu">Nothing yet.</p>'}</div>`
+ +(ins?`<div class="card"><h3>Upload a PDF or slides</h3><input id="mt1" placeholder="Title (for example Week 1 slides)"><input id="mf" type="file" accept=".pdf,.ppt,.pptx,application/pdf"><label class="mu"><input type="checkbox" id="mm" style="width:auto;display:inline;margin-right:8px"> Main course material (shown open to every student in this course)</label><div class="err" id="mer"></div><button data-m="up">Upload</button><p class="mu">PDF or PowerPoint, up to 50 MB. PDFs open inside the portal. Slides saved as PDF read best on phones.</p></div>
+ <div class="card"><h3>Add a video or link</h3><input id="mv1" placeholder="Topic of the video (for example Week 1: Mapping your network)"><input id="mv2" placeholder="Link (YouTube, Google Drive, anything starting with https)" inputmode="url" autocapitalize="off"><select id="mv3"><option value="video">Video</option><option value="link">Other link</option></select><div class="err" id="mer2"></div><button data-m="addl">Add</button></div>`:'')
+ +(error?`<div class="err">${esc(error.message)}</div>`:'');
+ if(main)matShow(main,document.getElementById('mv-main'))}
+async function matUp(){const er=document.getElementById('mer'),f=document.getElementById('mf').files[0],t=document.getElementById('mt1').value.trim(),mn=document.getElementById('mm').checked;
+ if(!t)return er.textContent='Enter a title.';if(!f)return er.textContent='Choose a file.';const ext=(f.name.split('.').pop()||'').toLowerCase();if(!['pdf','ppt','pptx'].includes(ext))return er.textContent='Only PDF or PowerPoint files.';if(f.size>52428800)return er.textContent='That file is over 50 MB.';if(mn&&ext!=='pdf')return er.textContent='The main course material must be a PDF.';
+ const b=document.querySelector('[data-m=up]');b.disabled=true;er.textContent='Uploading... keep this page open.';
+ const p=`${MC}/${(crypto.randomUUID?crypto.randomUUID():Date.now()+''+Math.random().toString(16).slice(2))}.${ext}`,ct={pdf:'application/pdf',ppt:'application/vnd.ms-powerpoint',pptx:'application/vnd.openxmlformats-officedocument.presentationml.presentation'}[ext];
+ const u=await sb.storage.from('materials').upload(p,f,{contentType:ct});if(u.error){b.disabled=false;return er.textContent=u.error.message}
+ if(mn)await sb.from('materials').update({is_main:false}).eq('course_id',MC).eq('is_main',true);
+ const{error}=await sb.from('materials').insert({course_id:MC,kind:ext==='pdf'&&!/slide/i.test(t)?'pdf':'slides',title:t,file_path:p,file_name:f.name,is_main:mn});
+ if(error){await sb.storage.from('materials').remove([p]);b.disabled=false;return er.textContent=error.message}
+ matV(MC)}
+async function matAddL(){const er=document.getElementById('mer2');let t=document.getElementById('mv1').value.trim(),u=document.getElementById('mv2').value.trim();if(!t)return er.textContent='Enter the topic.';if(!u)return er.textContent='Paste the link.';if(!/^https?:\/\//i.test(u)){if(/^[\w-]+(\.[\w-]+)+/.test(u))u='https://'+u;else return er.textContent='That does not look like a link.'}
+ const{error}=await sb.from('materials').insert({course_id:MC,kind:document.getElementById('mv3').value,title:t,url:u});if(error)return er.textContent=error.message;matV(MC)}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-m]');if(!b)return;const a=b.dataset.m,d=b.dataset;
+ if(a==='course')matV(d.c);else if(a==='up')matUp();else if(a==='addl')matAddL();
+ else if(a==='open'){const{data:m}=await sb.from('materials').select('*').eq('id',d.i).single(),box=document.getElementById('mv-'+d.i);if(m&&box){document.getElementById('mr-'+d.i).hidden=false;matShow(m,box)}}
+ else if(a==='hide'){await sb.from('materials').update({visible:d.v!=='true'}).eq('id',d.i);matV(MC)}
+ else if(a==='del'){if(!confirm('Delete this item? Students will no longer see it.'))return;const{data:m}=await sb.from('materials').select('file_path').eq('id',d.i).single();const{error}=await sb.from('materials').delete().eq('id',d.i);if(!error&&m?.file_path)await sb.storage.from('materials').remove([m.file_path]);delete MBLOB[d.i];matV(MC)}});
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.IP=e;document.querySelectorAll('.inst').forEach(b=>b.hidden=false)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
