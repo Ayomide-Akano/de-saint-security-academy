@@ -393,7 +393,7 @@ async function matShow(m,box){box.innerHTML='<div class="mu" style="padding:10px
   const u=URL.createObjectURL(b);box.insertAdjacentHTML('beforeend',`<div class="row" style="gap:8px;padding:6px 10px"><a class="mb" href="${u}" download="${esc(m.file_name||m.title+'.pdf')}">Download</a></div>`)
  }catch(e){matFallback(box,m,b)}}
 const MKIND={pdf:'PDF',slides:'Slides',video:'Video',link:'Link'};
-async function matV(c){const ins=me.role==='instructor';let cs=MCRS;
+async function matV0(c){const ins=me.role==='instructor';let cs=MCRS;
  if(!ins){const{data}=await sb.from('enrollments').select('course_id').eq('status','active'),ids=(data||[]).map(x=>x.course_id);cs=MCRS.filter(x=>ids.includes(x[0]))}
  if(!cs.length){A.innerHTML=hd('Materials')+`<div><button class="g" data-a="home">← Back</button></div><div class="card"><p class="mu">Your course materials will appear here once your payment is confirmed.</p></div>`;return}
  MC=c||(cs.some(x=>x[0]===MC)?MC:cs[0][0]);
@@ -611,7 +611,7 @@ function ytId(u){try{const x=new URL(u),h=x.hostname.replace(/^www\./,'');if(h==
 function vcard(r,ins){
  const code=(String(r.title).match(/^([A-Z]{1,2}-(?:W\d+-)?(?:L\d+|Intro|REC|REV))\b/i)||[])[1]||'',topic=code?String(r.title).slice(code.length).replace(/^[\s:.\-–]+/,''):r.title,yt=r.kind==='video'?ytId(r.url):null,tag=VT[MC]||'';
  const face=yt?`<img class="vy" src="https://img.youtube.com/vi/${esc(yt)}/hqdefault.jpg" alt="">`:`<div class="vbg"></div><img class="vsh" src="${CI.shield}" alt="">`;
- return `<div class="vc"><a class="vt" href="${esc(r.url)}" target="_blank" rel="noopener" aria-label="${esc(r.kind==='video'?'Watch ':'Open ')+esc(r.title)}">${face}${tag?`<span class="vtag">${tag}</span>`:''}${r.kind==='video'?'<span class="vpl"></span>':''}</a><div class="vi">${code?`<div class="vk">${esc(code.toUpperCase())}</div>`:`<div class="vk">${r.kind==='video'?'VIDEO':'LINK'}</div>`}<div class="vm">${esc(topic||r.title)}${r.visible?'':' <span class="mu">(hidden)</span>'}</div><div class="row"><a class="mb" href="${esc(r.url)}" target="_blank" rel="noopener">${r.kind==='video'?'Watch':'Open'}</a>${ins?`<button class="g" data-m="hide" data-i="${r.id}" data-v="${r.visible}">${r.visible?'Hide':'Show'}</button><button class="g" data-m="del" data-i="${r.id}">Delete</button>`:''}</div></div></div>`}
+ return `<div class="vc"><a class="vt" data-m="vopen" data-i="${r.id}" href="${esc(r.url)}" target="_blank" rel="noopener" aria-label="${esc(r.kind==='video'?'Watch ':'Open ')+esc(r.title)}">${face}${tag?`<span class="vtag">${tag}</span>`:''}${r.kind==='video'?'<span class="vpl"></span>':''}</a><div class="vi">${code?`<div class="vk">${esc(code.toUpperCase())}</div>`:`<div class="vk">${r.kind==='video'?'VIDEO':'LINK'}</div>`}<div class="vm">${esc(topic||r.title)}${r.visible?'':' <span class="mu">(hidden)</span>'}</div><div class="row"><a class="mb" data-m="vopen" data-i="${r.id}" href="${esc(r.url)}" target="_blank" rel="noopener">${r.kind==='video'?'Watch':'Open'}</a>${ins?`<button class="g" data-m="hide" data-i="${r.id}" data-v="${r.visible}">${r.visible?'Hide':'Show'}</button><button class="g" data-m="del" data-i="${r.id}">Delete</button>`:''}</div>${vfoot(r,ins)}</div></div>`}
 /* --- profile photo upload with a real progress bar --- */
 function upAv(path,blob,er){return new Promise(async res=>{
  er.insertAdjacentHTML('beforebegin','<div class="pbw" id="avp"><div class="pbt" id="avt"></div><div class="pbb"><i id="avb"></i></div></div>');
@@ -649,6 +649,33 @@ document.addEventListener('input',e=>{if(e.target.id!=='pl')return;const v=e.tar
  if(s)s.textContent='';
  LPT2=setTimeout(async()=>{const x=lpUrl(v),cur=me.portfolio_url||'';if(v.trim()&&!x)return;const out=x?x.href:'';if(out===cur)return;
   if(s)s.textContent='Saving...';const{error}=await sb.rpc('set_portfolio',{p_url:out});if(s)s.innerHTML=error?'<span class="bad">'+esc(error.message)+'</span>':'<span class="ok">Saved ✓ Your instructor can see this link.</span>';if(!error)me.portfolio_url=out},1400)});
+/* ===== Phase 5: video watch tracking ===== */
+document.head.insertAdjacentHTML('beforeend','<style>.vf{margin-top:8px;font-size:13px}.vf .ok{font-weight:700}.vf input{margin:6px 0}.vr summary{cursor:pointer;font-weight:700;padding:8px 0;overflow-wrap:anywhere}.vr .vn{display:flex;justify-content:space-between;gap:8px;padding:4px 0;border-bottom:1px solid var(--ln,#dde2ec);font-size:14px}.vr .vn span:last-child{text-align:right;flex:none}.vr .va{font-size:13px;color:#555;padding:0 0 4px 8px;overflow-wrap:anywhere}.vb2{display:inline-block;padding:2px 8px;border-radius:8px;background:#e8f5ec;color:#16703a;font-size:12px;font-weight:700}.vb3{display:inline-block;padding:2px 8px;border-radius:8px;background:#fff3cd;color:#8a6a00;font-size:12px;font-weight:700}.vb4{display:inline-block;padding:2px 8px;border-radius:8px;background:#fdecec;color:#b42318;font-size:12px;font-weight:700}</style>');
+let VW={};
+async function vwLoad(){VW={};if(!me||me.role==='instructor')return;try{const{data}=await sb.from('video_views').select('material_id,opened_count,watched_at,answer').eq('user_id',me.id);(data||[]).forEach(r=>VW[r.material_id]=r)}catch(e){}}
+function vfoot(r,ins){if(ins||r.kind!=='video')return '';const v=VW[r.id];
+ if(v&&v.watched_at)return `<div class="vf"><span class="ok">Watched ✓</span></div>`;
+ return `<div class="vf" id="vf-${r.id}">${v?'<span class="mu">Opened. </span>':''}<button class="g" data-m="vw" data-i="${r.id}">I watched this</button></div>`}
+async function matV(c){await vwLoad();await matV0(c);if(me.role==='instructor')try{await vrCard()}catch(e){}}
+async function vrCard(){
+ const{data,error}=await sb.rpc('video_report',{p_course:MC}),R=data||[];
+ const box=`<div class="card vr" id="vr"><h3>Who watched the videos</h3>`;let h;
+ if(error)h=box+`<div class="err">${esc(error.message)}</div></div>`;
+ else if(!R.length)h=box+`<p class="mu">No videos or no unlocked students yet.</p></div>`;
+ else{const vids=[],S={};R.forEach(r=>{let v=vids.find(x=>x.id===r.material_id);if(!v)vids.push(v={id:r.material_id,t:r.title,rows:[]});v.rows.push(r);const s=S[r.user_id]||(S[r.user_id]={n:r.full_name,w:0,o:0});if(r.watched_at)s.w++;if(r.opened_count>0)s.o++});
+  const d=x=>x?new Date(x).toLocaleDateString('en-GB',{day:'numeric',month:'short'}):'',st=r=>r.watched_at?`<span class="vb2">Watched ${d(r.watched_at)}</span>`:r.opened_count>0?`<span class="vb3">Opened${r.opened_count>1?' '+r.opened_count+'×':''} ${d(r.last_opened)}</span>`:`<span class="vb4">Not yet</span>`;
+  h=box+`<p class="mu">Opened means they tapped the video. Watched means they tapped "I watched this".</p>`
+  +vids.map(v=>{const w=v.rows.filter(r=>r.watched_at).length,o=v.rows.filter(r=>!r.watched_at&&r.opened_count>0).length,n=v.rows.length-w-o;
+   return `<details><summary>${esc(v.t)}<br><span class="mu" style="font-weight:400">${w} watched · ${o} opened only · ${n} not yet</span></summary>${v.rows.slice().sort((a,b)=>(a.watched_at?0:a.opened_count>0?1:2)-(b.watched_at?0:b.opened_count>0?1:2)||String(a.full_name).localeCompare(b.full_name)).map(r=>`<div class="vn"><span>${esc(r.full_name)}</span><span>${st(r)}</span></div>${r.answer?`<div class="va">“${esc(r.answer)}”</div>`:''}`).join('')}</details>`}).join('')
+  +`<h3 style="margin-top:14px">Per student</h3>`+Object.values(S).sort((a,b)=>a.w-b.w||String(a.n).localeCompare(b.n)).map(s=>`<div class="vn"><span>${esc(s.n)}</span><span><b>${s.w}</b> of ${vids.length} watched</span></div>`).join('')+'</div>'}
+ const up=[...A.querySelectorAll('.card')].find(x=>/Upload a PDF or slides/.test(x.textContent));
+ if(up)up.insertAdjacentHTML('beforebegin',h);else A.insertAdjacentHTML('beforeend',h)}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-m]');if(!b)return;const a=b.dataset.m,i=b.dataset.i;
+ if(a==='vopen'){if(me&&me.role!=='instructor'){const v=VW[i]||(VW[i]={opened_count:0});v.opened_count=(v.opened_count||0)+1;try{sb.rpc('log_video_open',{p_material:i})}catch(x){}}}
+ else if(a==='vw'){const f=document.getElementById('vf-'+i);if(f)f.innerHTML=`<input id="vq-${i}" maxlength="300" placeholder="One thing you learned (optional)"><div class="row" style="gap:6px"><button data-m="vws" data-i="${i}">Done</button><button class="g" data-m="vwc" data-i="${i}">Cancel</button></div><div class="err" id="ve-${i}"></div>`}
+ else if(a==='vwc')matV(MC);
+ else if(a==='vws'){const q=document.getElementById('vq-'+i),er=document.getElementById('ve-'+i);b.disabled=true;const{error}=await sb.rpc('mark_video_watched',{p_material:i,p_answer:q?q.value:null});
+  if(error){b.disabled=false;if(er)er.textContent=error.message;return}matV(MC)}});
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.IP=e;document.querySelectorAll('.inst').forEach(b=>b.hidden=false)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
