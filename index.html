@@ -36,7 +36,7 @@ details{border:1px solid var(--ln);border-radius:10px;padding:10px 12px;backgrou
 const sb=supabase.createClient('https://ekkampezeesiubkcoihu.supabase.co','sb_publishable_bY3YBy1OW21PkbRsnFzpZQ_gveYstxa');
 const A=document.getElementById('app'),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const CO=new Proxy({beginner:'Beginner cohort',intermediate:'Intermediate cohort'},{get:(t,k)=>k in t?t[k]:'Vulnerability Assessment cohort'});const sh=a=>{const r=a.map((o,i)=>[o,i]);for(let i=r.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[r[i],r[j]]=[r[j],r[i]]}return r};let me=null,mode='in';
-const hd=t=>`<div class="brand"><img src="${CI.shield}" alt=""><span><b>DE’SAINTS</b><small>SECURITY ACADEMY</small></span><button class="inst" data-a="inst" ${window.IP?'':'hidden'}>Install app</button></div><div class="top"><div><h1>${t}</h1><div class="mu">${esc(me.full_name)} · ${me.role==='instructor'?'Instructor':CO[me.cohort]}</div></div><button class="g" data-a="out">Log out</button></div>`;
+const hd=t=>`<div class="brand"><img src="${CI.shield}" alt=""><span><b>DE’SAINTS</b><small>SECURITY ACADEMY</small></span><button class="inst" data-a="inst" ${window.IP?'':'hidden'}>Install app</button></div><div class="top"><div><h1>${t}</h1><div class="mu">${esc(me.full_name)} · ${me.role==='instructor'?'Instructor':CO[me.cohort]}</div></div><div style="display:flex;gap:6px"><button class="g thb" data-m="theme" aria-label="Change theme">☾</button><button class="g" data-a="out">Log out</button></div></div>`;
 const back=(a='home')=>`<div><button class="g" data-a="${a}">← Back</button></div>`;
 async function boot(){if(location.hash.includes('type=recovery'))return recV();const qv=new URLSearchParams(location.search).get('verify');if(qv)return vfyV(qv);const{data:{session}}=await sb.auth.getSession();if(window.REC)return recV();if(!session)return new URLSearchParams(location.search).has('login')?authV():shopV();
  const{data}=await sb.from('profiles').select('*').eq('id',session.user.id).single();me=data;if(me.role!=='instructor'){try{const r=await sb.rpc('link_my_orders');if(r.data>0){const q=await sb.from('profiles').select('*').eq('id',session.user.id).single();if(q.data)me=q.data}}catch(e){}}if(me.role!=='instructor'&&!me.approved)return pendV();await cohSetup();home()}
@@ -526,7 +526,7 @@ async function crt(){
   return h}));
  A.innerHTML=hd('Certificates')+back()+(rows.join('')||'<div class="card mu">No students yet.</div>');lpFill()}
 /* --- instructor: one student --- */
-async function prof(id,tab='ac'){
+async function prof0(id,tab='ac'){
  const{data:s}=await sb.from('profiles').select('*').eq('id',id).single(),{data:cl0}=await sb.rpc('cohort_list',{p_user:id}),CL=cl0||[],tb=[['ac','Academics'],['fi','Finance'],['pe','Personal']];
  if(PCOH[id]&&CL.some(c=>c.cohort===PCOH[id]))s.cohort=PCOH[id];else if(CL.length&&!CL.some(c=>c.cohort===s.cohort))s.cohort=CL[0].cohort;
  const ch=CL.length>1?`<div class="row" style="justify-content:flex-start">${CL.map(c=>`<button class="${c.cohort===s.cohort?'':'g'}" data-m="p2pc" data-id="${id}" data-c="${c.cohort}" data-t="${tab}">${SN[c.cohort]||c.cohort}</button>`).join('')}</div>`:'';
@@ -676,6 +676,25 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-m]')
  else if(a==='vwc')matV(MC);
  else if(a==='vws'){const q=document.getElementById('vq-'+i),er=document.getElementById('ve-'+i);b.disabled=true;const{error}=await sb.rpc('mark_video_watched',{p_material:i,p_answer:q?q.value:null});
   if(error){b.disabled=false;if(er)er.textContent=error.message;return}matV(MC)}});
+/* ===== Phase 6: light/dark theme button and payment reminder emails ===== */
+document.head.insertAdjacentHTML('beforeend','<style>.mb{background:var(--ac)!important;color:var(--ai)!important}.thb{min-width:44px;padding-left:10px;padding-right:10px;font-size:18px;line-height:1}.rmv{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.5;background:var(--bg);border:1px solid var(--ln);border-radius:10px;padding:12px;margin:8px 0}</style>');
+function thEff(){const t=document.documentElement.getAttribute('data-theme');return t||(window.matchMedia&&matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}
+function thSet(t){if(t)document.documentElement.setAttribute('data-theme',t);document.querySelectorAll('.thb').forEach(b=>{const d=thEff()==='dark',x=d?'☀':'☾';if(b.textContent!==x)b.textContent=x;const l=d?'Switch to light theme':'Switch to dark theme';if(b.getAttribute('aria-label')!==l)b.setAttribute('aria-label',l)})}
+try{const t=localStorage.getItem('dsa_theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}
+new MutationObserver(()=>thSet()).observe(document.getElementById('app')||document.body,{childList:true,subtree:true});
+async function prof(id,tab){await prof0(id,tab);if(!me||me.role!=='instructor')return;const t=A.querySelector('.tabs');if(!t)return;
+ let ls='';try{const{data}=await sb.from('reminder_log').select('sent_at').eq('user_id',id).eq('ok',true).order('sent_at',{ascending:false}).limit(1);if(data&&data[0])ls='Last reminder sent '+DT(new Date(data[0].sent_at))}catch(e){}
+ t.insertAdjacentHTML('afterend',`<div class="card" id="rmc"><h3>Payment reminder</h3><div class="mu">Emails this student their payment summary, using their registered email. ${ls}</div><button data-m="rmp" data-id="${id}">Send payment reminder</button><div id="rmb"></div></div>`)}
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-m]');if(!b)return;const a=b.dataset.m,id=b.dataset.id,box=document.getElementById('rmb');
+ if(a==='theme'){const t=thEff()==='dark'?'light':'dark';try{localStorage.setItem('dsa_theme',t)}catch(x){}thSet(t)}
+ else if(a==='rmp'){b.disabled=true;box.innerHTML='<div class="mu">Preparing the message...</div>';const{data,error}=await sb.rpc('payment_reminder',{p_user:id});b.disabled=false;
+  if(error){box.innerHTML=`<div class="err">${esc(error.message)}</div>`;return}
+  box.innerHTML=`<div class="mu">To: <b>${esc(data.to)}</b></div><div class="mu">Subject: ${esc(data.subject)}</div><div class="rmv">${esc(data.body)}</div><div class="row" style="gap:6px;justify-content:flex-start"><button data-m="rms" data-id="${id}">Send now</button><button class="g" data-m="rmx">Cancel</button></div><div id="rme"></div>`}
+ else if(a==='rmx'){if(box)box.innerHTML=''}
+ else if(a==='rms'){b.disabled=true;const e2=document.getElementById('rme');e2.innerHTML='<div class="mu">Sending...</div>';
+  const go=async force=>{const{data:{session}}=await sb.auth.getSession();let j={};try{const r=await fetch('https://ekkampezeesiubkcoihu.supabase.co/functions/v1/reminder',{method:'POST',headers:{'content-type':'application/json',apikey:KEY,authorization:'Bearer '+(session?.access_token||KEY)},body:JSON.stringify({user:id,force})});j=await r.json().catch(()=>({}));j.status=r.status;if(!r.ok&&!j.error)j.error='Something went wrong. Please try again.'}catch(x){j={error:'No connection. Check your internet and try again.'}}return j};
+  let j=await go(false);if(j.status===409&&confirm('A reminder went out in the last 6 hours. Send another one anyway?'))j=await go(true);
+  if(j.ok){box.innerHTML=`<div class="ok">Sent ✓ to ${esc(j.to)}</div>`}else{b.disabled=false;e2.innerHTML=`<div class="err">${esc(j.error||'Not sent.')}</div>`}}});
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.IP=e;document.querySelectorAll('.inst').forEach(b=>b.hidden=false)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
