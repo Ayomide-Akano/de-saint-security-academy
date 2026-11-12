@@ -988,20 +988,20 @@ document.addEventListener('click',async e=>{const b=e.target.closest('[data-m]')
 function chClose(){chRecCancel();CH.open=false;const p=document.getElementById('cp');if(p)p.hidden=true}
 /* ===== Phase 10: Live today bar + quick attendance ===== */
 const LVC=['beginner','intermediate','va'],lvF=(d,o)=>new Date(d).toLocaleString('en-GB',Object.assign({timeZone:'Africa/Lagos'},o));
-let LV={rows:[],t:null};
+let LV={rows:[],t:null,open:false};document.addEventListener('toggle',e=>{if(e.target&&e.target.id==='lvdet')LV.open=e.target.open},true);
 function lvLeft(r){const ms=new Date(r.starts_at)-Date.now(),m=Math.round(ms/60000);if(ms<=0)return'<b style="color:#1e8e4e">Live now</b>';if(m<60)return'Starts in '+m+' min';if(m<1440)return'Starts in '+Math.floor(m/60)+' h '+(m%60)+' min';return'In '+Math.round(m/1440)+' day(s)'}
 function lvBar(){const e=document.getElementById('lvb');if(!e)return;const ins=me&&me.role==='instructor';
  e.innerHTML=LV.rows.map(r=>`<div class="card" style="border-left:4px solid #1e8e4e"><div class="mu">Live class${ins?' · '+esc(SN[r.cohort]||r.cohort):''}${r.session?' · Session '+r.session:''}</div><h3 style="margin:2px 0">${lvF(r.starts_at,{weekday:'short',day:'numeric',month:'short',hour:'numeric',minute:'2-digit',hour12:true})} (Lagos time)</h3><div class="mu">${lvLeft(r)}${r.note?' · '+esc(r.note):''}</div><div class="row" style="justify-content:flex-start;margin-top:8px"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer"><button type="button">Join the class</button></a>${ins?`<button class="g" data-m="lvclr" data-c="${esc(r.cohort)}">Remove</button>`:''}</div></div>`).join('')}
 async function lvLoad(){try{const{data}=await sb.rpc('live_now');LV.rows=data||[]}catch(e){LV.rows=[]}lvBar()}
 function lvHome(){if(!me)return;const top=A.querySelector('.top');if(!top)return;document.getElementById('lvb')?.remove();
  let h='<div id="lvb"></div>';
- if(me.role==='instructor')h+=`<div class="card" id="lvi"><h3>Live class</h3><div class="mu">Set the Google Meet link and time. Students see a Join bar on their home page.</div>
+ if(me.role==='instructor')h+=`<div class="card" id="lvi"><details id="lvdet" ${LV.open?'open':''}><summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Live class &amp; attendance</h3><span class="mu">tap to open / close ▾</span></summary><div class="mu" style="margin-top:8px">Set the Google Meet link and time. Students see a Join bar on their home page.</div>
  <div class="row" style="justify-content:flex-start;gap:8px;margin-top:8px"><select id="lvc">${LVC.map(c=>`<option value="${c}">${SN[c]}</option>`).join('')}</select><select id="lvs"><option value="">Session no.</option>${[1,2,3,4,5,6,7,8].map(n=>`<option>${n}</option>`).join('')}</select></div>
  <input id="lvd" type="datetime-local" style="margin-top:8px"><input id="lvu" type="url" placeholder="Paste the Google Meet link" style="margin-top:8px"><input id="lvn" maxlength="150" placeholder="Short note, for example: bring your questions (optional)" style="margin-top:8px">
  <label class="mu" style="display:block;margin-top:8px"><input id="lvp" type="checkbox" checked style="width:auto"> Also post and pin it in the cohort group chat</label>
  <div class="row" style="justify-content:flex-start;margin-top:8px"><button data-m="lvsave">Save live class</button></div><div id="lvm" class="mu"></div>
  <hr style="border:0;border-top:1px solid #8884;margin:14px 0"><h3>Quick attendance</h3><div class="mu">Pick the cohort and session above, load the class list and tick who joined.</div>
- <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="g" data-m="lvroster">Load class list</button></div><div id="lva"></div></div>`;
+ <div class="row" style="justify-content:flex-start;margin-top:8px"><button class="g" data-m="lvroster">Load class list</button></div><div id="lva"></div></details></div>`;
  top.insertAdjacentHTML('afterend',h);lvBar();lvLoad();clearInterval(LV.t);LV.t=setInterval(()=>{if(!document.getElementById('lvb')){clearInterval(LV.t);return}lvBar()},30000)}
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-m]');if(!b)return;const a=b.dataset.m;if(!a.startsWith('lv'))return;const g=i=>document.getElementById(i),M=g('lvm');
  if(a==='lvsave'){const c=g('lvc').value,s=g('lvs').value,d=g('lvd').value,u=g('lvu').value.trim();if(!d||!u){M.textContent='Add the date, time and link.';return}
