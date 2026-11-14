@@ -1022,6 +1022,7 @@ const css=`
 :root{--bga:.1;--r:18px;--sh:0 1px 2px rgba(11,31,69,.06),0 10px 28px rgba(11,31,69,.07)}
 @media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bga:.2;--sh:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35)}}
 :root[data-theme=dark]{--bga:.2;--sh:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.35)}
+#ldr{position:fixed;inset:0;z-index:9999;background:rgba(24,30,44,.55);display:none;place-items:center}#ldr.on{display:grid}#ldr img{width:84px;height:84px;animation:brth .7s ease-in-out infinite}@keyframes brth{0%,100%{transform:scale(.85);opacity:.75}50%{transform:scale(1.12);opacity:1}}
 #bgart{position:fixed;inset:0;z-index:-1;pointer-events:none;background:url(${IMG}) center/cover no-repeat;opacity:var(--bga)}
 body{font-family:"Inter",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.5}
 .card{border-radius:var(--r);box-shadow:var(--sh);border-color:transparent;padding:18px;gap:10px}
@@ -1043,14 +1044,17 @@ input,select,textarea{border-radius:12px}
 @media (min-width:900px){body{padding:20px clamp(24px,4vw,72px) 60px}.w{max-width:1680px;gap:20px}.grid{grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
  .w>details,.w>h2{max-width:980px}.top{padding:36px 40px}}
 @media (min-width:1500px){.grid{grid-template-columns:repeat(auto-fill,minmax(320px,1fr))}}
-@media (max-width:600px){body{font-size:17px;padding-top:10px}.w{gap:16px}.mu{font-size:15px}
- .grid{grid-template-columns:1fr 1fr;gap:12px}.grid>.card:not(.pc){padding:16px 14px;gap:8px}.grid>.card:not(.pc) .mu{display:none}.grid>.card:not(.pc) h2{font-size:18px;border-left:0;padding-left:0}
- .grid>.card:not(.pc) h2{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-size:17px}.grid>.card:not(.pc) .bd{margin:0}.grid>.card:not(.pc) button{min-height:46px}.top{flex-direction:column;align-items:flex-start}.top button{white-space:nowrap}.top{padding:22px 20px;border-radius:20px}.top h1{font-size:26px}
- .hero2{padding:30px 20px;border-radius:22px}.hero2 .mu{display:none}.hero2 h1{font-size:28px}
- .grid:has(.pc){grid-template-columns:1fr}.pc .ul,.pc .mu:not(:first-of-type){display:none}.pc{padding:20px}
- .w>details p{font-size:16px}.card:has(>.ring){gap:6px}.ring{min-width:80px;font-size:13px}
- #cb{right:14px}}
+@media (max-width:600px){body{font-size:15px;line-height:1.45;padding-top:10px}.w{gap:14px}.mu{font-size:13.5px}h2{font-size:17px}h3{font-size:16px}
+ button{font-size:15px;min-height:46px}.tag{font-size:11.5px;padding:2px 9px}.card{padding:16px}
+ .brand{position:static;flex-wrap:wrap;gap:8px 10px;padding:10px 12px}.brand img{width:32px;height:32px}.brand b{font-size:15px}.brand small{font-size:9px;letter-spacing:.2em}
+ .brand button{min-height:34px;padding:0 12px;font-size:13px;white-space:nowrap;flex-shrink:0;margin-left:0}.brand button:first-of-type{margin-left:auto}
+ .grid{grid-template-columns:1fr 1fr;gap:12px}.grid>.card:not(.pc){padding:14px;gap:8px}.grid>.card:not(.pc) .mu{display:none}.grid>.card:not(.pc) h2{display:flex;flex-direction:column;align-items:flex-start;gap:8px;font-size:16px;border-left:0;padding-left:0}.grid>.card:not(.pc) .bd{margin:0}.grid>.card:not(.pc) button{min-height:44px}
+ .top{flex-direction:column;align-items:flex-start;padding:20px 18px;border-radius:20px;gap:12px}.top h1{font-size:22px}.top .mu{font-size:13.5px}.top button{white-space:nowrap;min-height:40px;font-size:14px;padding:0 14px}
+ .hero2{padding:28px 18px;border-radius:20px}.hero2 .mu{display:none}.hero2 h1{font-size:25px;line-height:1.15}.hero2 button{min-height:46px;font-size:15px}
+ .grid:has(.pc){grid-template-columns:1fr}.pc .ul,.pc .mu:not(:first-of-type){display:none}.pc{padding:18px}.pc .price{font-size:26px}.pc s{font-size:14px}
+ .w>details p{font-size:14.5px}details{padding:10px 12px}summary{font-size:15px}.card:has(>.ring){gap:6px}.ring{min-width:80px;font-size:12.5px}#cb{right:14px}}
 `;
+if(!document.getElementById('p11font')){const l=document.createElement('link');l.id='p11font';l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap';document.head.appendChild(l)}
 const st=document.createElement('style');st.id='p11css';st.textContent=css;document.head.appendChild(st);
 if(!document.getElementById('bgart')){const d=document.createElement('div');d.id='bgart';document.body.prepend(d)}
 })();
@@ -1066,6 +1070,16 @@ async function chUploadSend(blob,mime,ext,tpl){const er=document.getElementById(
  catch(x){if(up){try{sb.storage.from('chatfiles').remove([path])}catch(e){}}
   const e2=document.getElementById('cher');if(e2)e2.innerHTML=esc(chErrMsg(x))+' <button type="button" class="g" data-m="chretry" style="min-height:32px;padding:0 12px">Try again</button>'}}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-m=chretry]');if(!b)return;const p=CH.pend;if(p)chUploadSend(p.blob,p.mime,p.ext,p.tpl)});
+
+/* loading animation: grey screen + breathing logo for 0.7 s before a student or guest button acts */
+(()=>{let bypass=false,tm=null;
+ const ov=()=>{let o=document.getElementById('ldr');if(!o){o=document.createElement('div');o.id='ldr';o.setAttribute('aria-hidden','true');o.innerHTML='<img alt="" src="'+(typeof CI!=='undefined'&&CI.shield||'')+'">';document.body.appendChild(o)}return o};
+ document.addEventListener('click',e=>{if(bypass||e.defaultPrevented)return;const b=e.target.closest&&e.target.closest('button');if(!b||b.disabled)return;
+  if(me&&me.role==='instructor')return;const d=b.dataset;if(!(d.a||d.s||d.m))return;if(b.closest('#cp,#cb,#ldr'))return;if(b.closest('a'))return;if(d.m==='theme'||d.a==='inst')return;
+  if(typeof CUR!=='undefined'&&CUR)return;
+  e.stopImmediatePropagation();e.preventDefault();if(tm)return;const o=ov();o.classList.add('on');
+  tm=setTimeout(()=>{tm=null;if(b.isConnected){bypass=true;try{b.click()}finally{bypass=false}}setTimeout(()=>o.classList.remove('on'),250)},700)},true);
+})();
 
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();window.IP=e;document.querySelectorAll('.inst').forEach(b=>b.hidden=false)});
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
